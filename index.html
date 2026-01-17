@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: "Microsoft JhengHei", sans-serif; margin: 20px; background: #f8f9fa; }
+    h1 { text-align: center; color: #2c3e50; }
+    .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    label { display: inline-block; width: 120px; margin: 10px 0 5px; font-weight: bold; }
+    select, input[type=number], button { padding: 9px; font-size: 1.05em; border-radius: 6px; border: 1px solid #ccc; }
+    button { color: white; border: none; cursor: pointer; padding: 12px 30px; font-weight: bold; margin: 5px; }
+    #calcBtn { background: #e67e22; }
+    #calcBtn:hover { background: #d35400; }
+    #resetBtn { background: #95a5a6; }
+    #resetBtn:hover { background: #7f8c8d; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+    th { background: #34495e; color: white; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    .full { font-weight: bold; color: #c0392b; margin: 20px 0; font-size: 1.1em; }
+    .credit { font-size: 1em; margin-top: 10px; color: #7f8c8d; text-align: center; }
+    .gold { color: #FFD700; font-weight: bold; }
+    .button-group { margin: 20px 0; }
+    .highlight { background: #fff3cd !important; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>馬匹成長計算器</h1>
+  <p class="credit">此計算器由馬場大亨國際版<span class="gold">（神）</span>制作
+版權所有，未經許可禁止複製、修改、反編譯或商業使用
+  © 2026 All Rights Reserved
+</p>
+
+  <div>
+    <label>成長類型：</label>
+    <select id="growthType">
+      <option value="早熟">早熟</option>
+      <option value="普通">普通</option>
+      <option value="晚成" selected>晚成</option>
+    </select>
+
+    <label style="margin-left: 50px;">目前歲數：</label>
+    <select id="currentAge">
+      <option value="3">3歲</option>
+      <option value="4">4歲</option>
+      <option value="5">5歲</option>
+      <option value="6">6歲</option>
+      <option value="7" selected>7歲</option>
+      <option value="8">8歲</option>
+      <option value="9">9歲</option>
+    </select>
+  </div>
+
+  <div style="margin: 25px 0;">
+    <p><strong>目前數值（輸入該歲數的顯示值）</strong></p>
+    
+    <div><label>速度：</label><input type="number" id="spd" value="57" min="0"></div>
+    <div><label>體質：</label><input type="number" id="con" value="45" min="0"></div>
+    <div><label>短程：</label><input type="number" id="short" value="59" min="0"></div>
+    <div><label>爆發：</label><input type="number" id="burst" value="58" min="0"></div>
+    <div><label>中程：</label><input type="number" id="mid" value="57" min="0"></div>
+    <div><label>穩定：</label><input type="number" id="stab" value="25" min="0"></div>
+    <div><label>長程：</label><input type="number" id="long" value="23" min="0"></div>
+    <div><label>耐力：</label><input type="number" id="end" value="26" min="0"></div>
+  </div>
+
+  <div class="button-group">
+    <button id="calcBtn" onclick="calculate()">計算 3～9歲 預測</button>
+    <button id="resetBtn" onclick="resetAll()">🔄 一鍵重置</button>
+  </div>
+
+  <div id="resultArea"></div>
+</div>
+
+<script>
+  const growthTable = {
+    "早熟": {3:95,4:100,5:100,6:90,7:85,8:80,9:80},
+    "普通": {3:85,4:90,5:95,6:100,7:100,8:90,9:80},
+    "晚成": {3:80,4:80,5:85,6:90,7:95,8:100,9:100}
+  };
+
+  const attrs = [
+    {label:"速度", id:"spd"}, {label:"體質", id:"con"},
+    {label:"短程", id:"short"}, {label:"爆發", id:"burst"},
+    {label:"中程", id:"mid"}, {label:"穩定", id:"stab"},
+    {label:"長程", id:"long"}, {label:"耐力", id:"end"}
+  ];
+
+  function calculate() {
+    const type = document.getElementById("growthType").value;
+    const currentAge = parseInt(document.getElementById("currentAge").value);
+    const curve = growthTable[type];
+
+    if (!curve[currentAge]) return alert("無該歲數資料");
+
+    const percentNow = curve[currentAge] / 100;
+    const currentValues = attrs.map(attr => parseFloat(document.getElementById(attr.id).value) || 0);
+
+    let full;
+    let boostedAge = null;
+
+    if (percentNow === 0.95 && curve[currentAge + 1] === 100) {
+      full = currentValues.map(v => Math.round(v / 0.95) + 1);
+      boostedAge = currentAge + 1;
+    } else {
+      full = currentValues.map(v => Math.round(v / percentNow));
+    }
+
+    const ageValues = {};
+    for (let y = 3; y <= 9; y++) {
+      const p = (curve[y] || 100) / 100;
+      const row = attrs.map((_, i) => Math.round(full[i] * p));
+      ageValues[y] = row;
+    }
+
+    let last100Value = null;
+    for (let y = 3; y <= 9; y++) {
+      if (curve[y] === 100) {
+        if (last100Value) {
+          ageValues[y] = [...last100Value];
+        } else {
+          last100Value = [...ageValues[y]];
+        }
+      } else {
+        last100Value = null;
+      }
+    }
+
+    let html = `<div class="full">推算滿值（100%）：<br>`;
+    attrs.forEach((a, i) => {
+      html += `${a.label}：${full[i]}　`;
+      if ((i+1)%4===0) html += "<br>";
+    });
+    html += `</div>`;
+
+    html += `<table><thead><tr><th>歲數</th>`;
+    attrs.forEach(a => html += `<th>${a.label}</th>`);
+    html += `</tr></thead><tbody>`;
+
+    for (let y = 3; y <= 9; y++) {
+      html += `<tr><td>${y}歲</td>`;
+      ageValues[y].forEach((val, i) => {
+        const cellClass = (y === boostedAge) ? ' class="highlight"' : '';
+        html += `<td${cellClass}>${val}</td>`;
+      });
+      html += `</tr>`;
+    }
+    html += `</tbody></table>`;
+
+    document.getElementById("resultArea").innerHTML = html;
+  }
+
+  function resetAll() {
+    document.getElementById("growthType").value = "晚成";
+    document.getElementById("currentAge").value = "7";
+    attrs.forEach(attr => {
+      document.getElementById(attr.id).value = "";
+    });
+    document.getElementById("resultArea").innerHTML = "";
+  }
+</script>
+</body>
+</html>
